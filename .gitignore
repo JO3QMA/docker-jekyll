@@ -1,0 +1,5 @@
+/app
+/output
+/app2
+/app_old
+docker-compose.yml

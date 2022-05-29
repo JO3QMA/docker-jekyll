@@ -1,0 +1,20 @@
+version: "3"
+services:
+  jekyll:
+    build: ./build
+    tty: true
+    environment:
+      TZ: Asia/Tokyo
+      JEKYLL_MODE: "build"
+      JEKYLL_ARGS: "--watch"
+      JEKYLL_NEW_BLANK: false
+    volumes:
+      - ./app:/usr/src/app
+      - ./output:/usr/local/app
+    user: "1000:1000"
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./output:/usr/share/nginx/html
+    environment:
+      TZ: Asia/Tokyo
