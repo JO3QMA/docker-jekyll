@@ -1,9 +1,13 @@
 #!/bin/bash
+
+# UID,GIDを取得
 USER_ID=$(id -u)
 GROUP_ID=$(id -g)
 
 # 初期化
 SRC_DIR=/usr/src/app
+CHIRPY_DIR=/usr/src/chirpy
+JEKYLL_DIR=/usr/src/jekyll
 DEST_DIR=/usr/local/app
 
 # グループを作成する
@@ -20,22 +24,13 @@ fi
 sudo chmod u-s /usr/sbin/useradd
 sudo chmod u-s /usr/sbin/groupadd
 
-# ディレクトリ作成
-mkdir -p $SRC_DIR
-mkdir -p $DEST_DIR
 # パーミッション変更
 sudo chown $USER_NAME:$USER_NAME $SRC_DIR
+sudo chown $USER_NAME:$USER_NAME $CHIRPY_DIR
+sudo chown $USER_NAME:$USER_NAME $JEKYLL_DIR
 sudo chown $USER_NAME:$USER_NAME $DEST_DIR
 
 exec $@
-
-# 初期化
-SRC_DIR=/usr/src/app
-DEST_DIR=/usr/local/app
-
-# ディレクトリ作成
-mkdir -p $SRC_DIR
-mkdir -p $DEST_DIR
 
 # 設定値表示
 echo "========================================"
@@ -46,26 +41,27 @@ echo "jekyll ARGS     : ${JEKYLL_ARGS}"
 echo "jekyll NEW BLANK: ${JEKYLL_NEW_BLANK}"
 echo "========================================"
 
-cd $SRC_DIR
+# git clone
+cd ${CHIRPY_DIR}
+CHIRPY_REMOTE="https://github.com/cotes2020/jekyll-theme-chirpy"
+LATEST_TAG=`git ls-remote --tags -q  ${CHIRPY_REMOTE} | tail -1 | awk '{print $2}' | sed -e "s/refs\/tags\///"`
+git clone ${CHIRPY_REMOTE} ./ -b ${LATEST_TAG} > /dev/null 2>&1
 
-# $SRC_DIRが空ならば初期テンプレート作成
-if [ -z "$(ls $SRC_DIR)" ]; then
-  ${JEKYLL_NEW_BLANK:=false} #JEKYLL_NEW_BLANKが未定義の場合、falseを代入。
-  if   [ $JEKYLL_NEW_BLANK = false ]; then
-    echo "jekyll newを実行しました"
-    jekyll new $SRC_DIR
-  elif [ $JEKYLL_NEW_BLANK = true ]; then
-    echo "jekyll new --blankを実行しました"
-    jekyll new $SRC_DIR --blank
-  else
-    echo "JEKYLL_NEW_BLANKにBool以外の値が代入されています。"
-    exit 1
-  fi    
-fi
+# Copy chirpy to Jekyll Dir
+cd ${JEKYLL_DIR}
+cp -r ${CHIRPY_DIR}/* ${JEKYLL_DIR}
+rm -rf ${JEKYLL_DIR}/_posts/
+rm -rf ${JEKYLL_DIR}/.git/
+
+# Copy Src Dir to Jekyll Dir
+\cp -r ${SRC_DIR}/* ${JEKYLL_DIR}/
+
+cd $JEKYLL_DIR
 
 # Gemfileにwebrickがない場合追加
 echo "GemfileにWebrickが記述されていない場合、追加します。"
-grep -q "webrick" "${SRC_DIR}/Gemfile"
+cd ${JEKYLL_DIR}
+grep -q "webrick" "${JEKYLL_DIR}/Gemfile"
 if [ $? -eq 0 ]; then
   echo "webrickはすでに入っています。"
 elif [ $? -eq 1 ]; then
@@ -85,15 +81,15 @@ echo "========================================"
 
 # Jekyll 起動
 if   [ ${JEKYLL_MODE} = "serve"     ]; then
-  /usr/local/bundle/bin/bundle exec jekyll serve     ${JEKYLL_ARGS} -s ${SRC_DIR} -d ${DEST_DIR} --host=0.0.0.0 --watch
+  /usr/local/bundle/bin/bundle exec jekyll serve     ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR} --host=0.0.0.0 --watch
 elif [ ${JEKYLL_MODE} = "build"     ]; then
-  /usr/local/bundle/bin/bundle exec jekyll build     ${JEKYLL_ARGS} -s ${SRC_DIR} -d ${DEST_DIR}
+  /usr/local/bundle/bin/bundle exec jekyll build     ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR}
 elif [ ${JEKYLL_MODE} = "doctor"    ]; then
-  /usr/local/bundle/bin/bundle exec jekyll doctor    ${JEKYLL_ARGS} -s ${SRC_DIR} -d ${DEST_DIR}
+  /usr/local/bundle/bin/bundle exec jekyll doctor    ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR}
 elif [ ${JEKYLL_MODE} = "clean"     ]; then
-  /usr/local/bundle/bin/bundle exec jekyll clean     ${JEKYLL_ARGS} -s ${SRC_DIR} -d ${DEST_DIR}
+  /usr/local/bundle/bin/bundle exec jekyll clean     ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR}
 elif [ ${JEKYLL_MODE} = "new-theme" ]; then
-  /usr/local/bundle/bin/bundle exec jekyll new-theme ${JEKYLL_ARGS} -s ${SRC_DIR} -d ${DEST_DIR}
+  /usr/local/bundle/bin/bundle exec jekyll new-theme ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR}
 else
   # それ以外はエラーを返す
   echo "モードが不適切です。使用可能なモードは(serve|build|doctor|clean|new-theme)です。"

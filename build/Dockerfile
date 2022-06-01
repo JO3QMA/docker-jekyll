@@ -25,8 +25,12 @@ RUN  gem update \
 ADD entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh \
 &&  mkdir /usr/src/app -p \
+&&  mkdir /usr/src/chirpy -p \
+&&  mkdir /usr/src/jekyll -p \
 &&  mkdir /usr/local/app -p
 #WORKDIR /usr/src/app
+
+WORKDIR /usr/src/jekyll
 
 ENTRYPOINT ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
 EXPOSE 4000
