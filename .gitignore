@@ -2,4 +2,5 @@
 /output
 /app2
 /app_old
+/src
 docker-compose.yml
