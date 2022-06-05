@@ -1,6 +1,4 @@
-/app
-/output
-/app2
-/app_old
 /src
+/output
 docker-compose.yml
+jekyll.env

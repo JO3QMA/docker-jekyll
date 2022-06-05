@@ -19,16 +19,17 @@ RUN echo "実行ユーザーを作成します。" \
 &&  chmod u+s /usr/sbin/useradd \
 &&  chmod u+s /usr/sbin/groupadd
 
+# Jekyllに必要なGemをインストール
 RUN  gem update \
 &&  gem install jekyll bundler
 
+# entrypoint.shと作業に必要なディレクトリを作成
 ADD entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh \
 &&  mkdir /usr/src/app -p \
-&&  mkdir /usr/src/chirpy -p \
+&&  mkdir /usr/src/theme -p \
 &&  mkdir /usr/src/jekyll -p \
 &&  mkdir /usr/local/app -p
-#WORKDIR /usr/src/app
 
 WORKDIR /usr/src/jekyll
 

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # UID,GIDを取得
 USER_ID=$(id -u)
@@ -6,7 +7,7 @@ GROUP_ID=$(id -g)
 
 # 初期化
 SRC_DIR=/usr/src/app
-CHIRPY_DIR=/usr/src/chirpy
+THEME_DIR=/usr/src/theme
 JEKYLL_DIR=/usr/src/jekyll
 DEST_DIR=/usr/local/app
 
@@ -26,7 +27,7 @@ sudo chmod u-s /usr/sbin/groupadd
 
 # パーミッション変更
 sudo chown $USER_NAME:$USER_NAME $SRC_DIR
-sudo chown $USER_NAME:$USER_NAME $CHIRPY_DIR
+sudo chown $USER_NAME:$USER_NAME $THEME_DIR
 sudo chown $USER_NAME:$USER_NAME $JEKYLL_DIR
 sudo chown $USER_NAME:$USER_NAME $DEST_DIR
 
@@ -34,27 +35,76 @@ exec $@
 
 # 設定値表示
 echo "========================================"
-echo "Source Dir      : ${SRC_DIR}"
-echo "Target Dir      : ${DEST_DIR}"
-echo "Jekyll Mode     : ${JEKYLL_MODE}"
-echo "jekyll ARGS     : ${JEKYLL_ARGS}"
-echo "jekyll NEW BLANK: ${JEKYLL_NEW_BLANK}"
+echo "Site Files Dir    : ${SITE_DIR}"
+echo "Site Repo's URL   : ${SITE_REPOSITORY}"
+echo "Site Repo's Branch: ${SITE_BRANCH}"
+echo "Theme Fils Dir    : ${THEME_DIR}"
+echo "Theme Repo's URL  : ${THEME_REPOSITORY}"
+echo "Theme Repo's Tag  : ${THEME_TAG}"
+echo "Target Dir        : ${DEST_DIR}"
+echo "Jekyll Dir        : ${JEKYLL_DIR}"
+echo "Jekyll Mode       : ${JEKYLL_MODE}"
+echo "jekyll ARGS       : ${JEKYLL_ARGS}"
+echo "jekyll NEW BLANK  : ${JEKYLL_NEW_BLANK}"
 echo "========================================"
 
-# git clone
-cd ${CHIRPY_DIR}
-CHIRPY_REMOTE="https://github.com/cotes2020/jekyll-theme-chirpy"
-LATEST_TAG=`git ls-remote --tags -q  ${CHIRPY_REMOTE} | tail -1 | awk '{print $2}' | sed -e "s/refs\/tags\///"`
-git clone ${CHIRPY_REMOTE} ./ -b ${LATEST_TAG} > /dev/null 2>&1
+# Theme Repository Clone
+# cd ${THEME_DIR}
+if [ -n "$THEME_REPOSITORY" ]; then
+  # ${THEME_REPOSITORY}が空でない場合
+  ${THEME_TAG:="HEAD"}
+  if [ "${THEMETAG}" = "latest" ]; then
+    # 最後のタグを取得
+    LATEST_TAG=`git ls-remote --tags -q  ${THEME_REPOSITORY} | grep -v "^{}" | tail -1 | awk '{print $2}' | sed -e "s/refs\/tags\///"`
+    git clone ${THEME_REPOSITORY} ${THEME_DIR} -b ${LATEST_TAG} --depth 1
+  elif [ "${THEME_TAG}" = "HEAD" ]; then
+    # HEADを取得
+    git clone ${THEME_REPOSITORY} ${THEME_DIR} --depth 1
+  else
+    # 指定バージョンを取得
+    git ls-remote --tags -q ${THEME_REPOSITORY} | awk '{print $2}'| sed -e "s/refs\/tags\///" | grep -x ${THEME_TAG}
+    if [ $? -eq 0 ]; then
+      git clone ${THEME_REPOSITORY} ${THEME_DIR} -b ${THEME_TAG} --depth 1
+    else
+      echo "THEME_TAGと一致するタグが存在しません。"
+      exit 1
+    fi
+  fi
+else
+  echo "環境変数:THEME_REPOSITORYが空です。処理を中断します。"
+  exit 1
+fi
 
-# Copy chirpy to Jekyll Dir
+
+# Copy theme to Jekyll Dir
 cd ${JEKYLL_DIR}
-cp -r ${CHIRPY_DIR}/* ${JEKYLL_DIR}
+cp -r ${THEME_DIR}/* ${JEKYLL_DIR}
 rm -rf ${JEKYLL_DIR}/_posts/
 rm -rf ${JEKYLL_DIR}/.git/
 
+
+# Site Repository Clone
+if [ -n "$SITE_REPOSITORY" ]; then
+  if [ -n "${SITE_BRANCH}" ]; then
+    git ls-remote --heads ${SITE_REPOSITORY} | awk '{print $2}' | sed -e "s/refs\/heads\///" | grep -x ${SITE_BRANCH}
+    if [ $? -eq 0 ]; then
+      git clone ${SITE_REPOSITORY} ${SITE_DIR} -b ${SITE_BRANCH} --depth 1
+    else
+      echo "SITE_BRANCHが存在しません。"
+      exit 1
+    fi
+  else
+    # Branchが指定されていない場合、メインブランチを使う
+    git clone ${SITE_REPOSITORY} ${SITE_DIR} --depth 1
+  fi
+else
+  echo "SITE_REPOSITORYが指定されていません。"
+  exit 1
+fi
+
 # Copy Src Dir to Jekyll Dir
-\cp -r ${SRC_DIR}/* ${JEKYLL_DIR}/
+\cp -r ${SITE_DIR}/* ${JEKYLL_DIR}/
+rm -rf ${JEKYLL_DIR}/.git/
 
 cd $JEKYLL_DIR
 
@@ -81,7 +131,7 @@ echo "========================================"
 
 # Jekyll 起動
 if   [ ${JEKYLL_MODE} = "serve"     ]; then
-  /usr/local/bundle/bin/bundle exec jekyll serve     ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR} --host=0.0.0.0 --watch
+  /usr/local/bundle/bin/bundle exec jekyll serve     ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR} --host=0.0.0.0
 elif [ ${JEKYLL_MODE} = "build"     ]; then
   /usr/local/bundle/bin/bundle exec jekyll build     ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR}
 elif [ ${JEKYLL_MODE} = "doctor"    ]; then
@@ -93,6 +143,5 @@ elif [ ${JEKYLL_MODE} = "new-theme" ]; then
 else
   # それ以外はエラーを返す
   echo "モードが不適切です。使用可能なモードは(serve|build|doctor|clean|new-theme)です。"
-  echo "newは/usr/src/appが空の場合、自動的に実行されます。"
   exit 1
 fi
