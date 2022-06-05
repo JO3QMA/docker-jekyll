@@ -6,7 +6,7 @@ USER_ID=$(id -u)
 GROUP_ID=$(id -g)
 
 # 初期化
-SRC_DIR=/usr/src/app
+SITE_DIR=/usr/src/app
 THEME_DIR=/usr/src/theme
 JEKYLL_DIR=/usr/src/jekyll
 DEST_DIR=/usr/local/app
@@ -26,7 +26,7 @@ sudo chmod u-s /usr/sbin/useradd
 sudo chmod u-s /usr/sbin/groupadd
 
 # パーミッション変更
-sudo chown $USER_NAME:$USER_NAME $SRC_DIR
+sudo chown $USER_NAME:$USER_NAME $SITE_DIR
 sudo chown $USER_NAME:$USER_NAME $THEME_DIR
 sudo chown $USER_NAME:$USER_NAME $JEKYLL_DIR
 sudo chown $USER_NAME:$USER_NAME $DEST_DIR
@@ -49,15 +49,16 @@ echo "jekyll NEW BLANK  : ${JEKYLL_NEW_BLANK}"
 echo "========================================"
 
 # Theme Repository Clone
+echo "テーマのダウンロード処理を開始します。"
 # cd ${THEME_DIR}
 if [ -n "$THEME_REPOSITORY" ]; then
   # ${THEME_REPOSITORY}が空でない場合
-  ${THEME_TAG:="HEAD"}
-  if [ "${THEMETAG}" = "latest" ]; then
+  : ${THEME_TAG:="HEAD"}
+  if [ ${THEME_TAG} = "latest" ]; then
     # 最後のタグを取得
     LATEST_TAG=`git ls-remote --tags -q  ${THEME_REPOSITORY} | grep -v "^{}" | tail -1 | awk '{print $2}' | sed -e "s/refs\/tags\///"`
     git clone ${THEME_REPOSITORY} ${THEME_DIR} -b ${LATEST_TAG} --depth 1
-  elif [ "${THEME_TAG}" = "HEAD" ]; then
+  elif [ ${THEME_TAG} = "HEAD" ]; then
     # HEADを取得
     git clone ${THEME_REPOSITORY} ${THEME_DIR} --depth 1
   else
@@ -84,7 +85,7 @@ rm -rf ${JEKYLL_DIR}/.git/
 
 
 # Site Repository Clone
-if [ -n "$SITE_REPOSITORY" ]; then
+if [ -n ${SITE_REPOSITORY} ]; then
   if [ -n "${SITE_BRANCH}" ]; then
     git ls-remote --heads ${SITE_REPOSITORY} | awk '{print $2}' | sed -e "s/refs\/heads\///" | grep -x ${SITE_BRANCH}
     if [ $? -eq 0 ]; then
