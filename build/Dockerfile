@@ -29,7 +29,8 @@ RUN chmod +x /usr/local/bin/entrypoint.sh \
 &&  mkdir /usr/src/app -p \
 &&  mkdir /usr/src/theme -p \
 &&  mkdir /usr/src/jekyll -p \
-&&  mkdir /usr/local/app -p
+&&  mkdir /usr/local/app -p \
+&&  mkdir /usr/local/bundle -p
 
 WORKDIR /usr/src/jekyll
 

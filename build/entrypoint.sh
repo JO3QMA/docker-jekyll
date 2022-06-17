@@ -1,35 +1,41 @@
 #!/bin/bash
 set -e
 
-# UID,GIDを取得
-USER_ID=$(id -u)
-GROUP_ID=$(id -g)
-
 # 初期化
 SITE_DIR=/usr/src/app
 THEME_DIR=/usr/src/theme
 JEKYLL_DIR=/usr/src/jekyll
 DEST_DIR=/usr/local/app
+BUNDLE_DIR=/usr/local/bundle
 
-# グループを作成する
-if [ x"$GROUP_ID" != x"0" ]; then
-    groupadd -g $GROUP_ID $USER_NAME
+if [ -f /home/jekyll/check_user ]; then
+  # UID,GIDを取得
+  USER_ID=$(id -u)
+  GROUP_ID=$(id -g)
+
+  # グループを作成する
+  if [ x"$GROUP_ID" != x"0" ]; then
+      groupadd -g $GROUP_ID $USER_NAME
+  fi
+
+  # ユーザを作成する
+  if [ x"$USER_ID" != x"0" ]; then
+      useradd -d /home/$USER_NAME -m -s /bin/bash -u $USER_ID -g $GROUP_ID $USER_NAME
+  fi
+
+  # パーミッションを元に戻す
+  sudo chmod u-s /usr/sbin/useradd
+  sudo chmod u-s /usr/sbin/groupadd
+
+  # パーミッション変更
+  sudo chown $USER_NAME:$USER_NAME $SITE_DIR
+  sudo chown $USER_NAME:$USER_NAME $THEME_DIR
+  sudo chown $USER_NAME:$USER_NAME $JEKYLL_DIR
+  sudo chown $USER_NAME:$USER_NAME $DEST_DIR
+  sudo chown $USER_NAME:$USER_NAME $BUNDLE_DIR
+
+  touch /home/jekyll/check_user
 fi
-
-# ユーザを作成する
-if [ x"$USER_ID" != x"0" ]; then
-    useradd -d /home/$USER_NAME -m -s /bin/bash -u $USER_ID -g $GROUP_ID $USER_NAME
-fi
-
-# パーミッションを元に戻す
-sudo chmod u-s /usr/sbin/useradd
-sudo chmod u-s /usr/sbin/groupadd
-
-# パーミッション変更
-sudo chown $USER_NAME:$USER_NAME $SITE_DIR
-sudo chown $USER_NAME:$USER_NAME $THEME_DIR
-sudo chown $USER_NAME:$USER_NAME $JEKYLL_DIR
-sudo chown $USER_NAME:$USER_NAME $DEST_DIR
 
 exec $@
 
@@ -41,11 +47,12 @@ echo "Site Repo's Branch: ${SITE_BRANCH}"
 echo "Theme Fils Dir    : ${THEME_DIR}"
 echo "Theme Repo's URL  : ${THEME_REPOSITORY}"
 echo "Theme Repo's Tag  : ${THEME_TAG}"
-echo "Target Dir        : ${DEST_DIR}"
+echo "Output Dir        : ${DEST_DIR}"
 echo "Jekyll Dir        : ${JEKYLL_DIR}"
 echo "Jekyll Mode       : ${JEKYLL_MODE}"
 echo "jekyll ARGS       : ${JEKYLL_ARGS}"
 echo "jekyll NEW BLANK  : ${JEKYLL_NEW_BLANK}"
+echo "Bundler Dir       : ${BUNDLE_DIR}"
 echo "========================================"
 
 # Theme Repository Clone
@@ -56,7 +63,7 @@ if [ -n "$THEME_REPOSITORY" ]; then
   : ${THEME_TAG:="HEAD"}
   if [ ${THEME_TAG} = "latest" ]; then
     # 最後のタグを取得
-    LATEST_TAG=`git ls-remote --tags -q  ${THEME_REPOSITORY} | grep -v "^{}" | tail -1 | awk '{print $2}' | sed -e "s/refs\/tags\///"`
+    LATEST_TAG=`git ls-remote --tags -q  ${THEME_REPOSITORY} | tail -1 | awk '{print $2}' | sed -e "s/refs\/tags\///" -e "s/\^\{\}//"`
     git clone ${THEME_REPOSITORY} ${THEME_DIR} -b ${LATEST_TAG} --depth 1
   elif [ ${THEME_TAG} = "HEAD" ]; then
     # HEADを取得
@@ -126,7 +133,7 @@ fi
 
 # bundle
 echo "Bundle installをします"
-/usr/local/bundle/bin/bundle install
+/usr/local/bundle/bin/bundle install --path ${BUNDLE_DIR}
 
 echo "========================================"
 
