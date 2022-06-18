@@ -8,7 +8,7 @@ JEKYLL_DIR=/usr/src/jekyll
 DEST_DIR=/usr/local/app
 BUNDLE_DIR=/usr/local/bundle
 
-if [ -f /home/jekyll/check_user ]; then
+if [ ! -e /home/jekyll/check_user ]; then
   # UID,GIDを取得
   USER_ID=$(id -u)
   GROUP_ID=$(id -g)
@@ -63,7 +63,7 @@ if [ -n "$THEME_REPOSITORY" ]; then
   : ${THEME_TAG:="HEAD"}
   if [ ${THEME_TAG} = "latest" ]; then
     # 最後のタグを取得
-    LATEST_TAG=`git ls-remote --tags -q  ${THEME_REPOSITORY} | tail -1 | awk '{print $2}' | sed -e "s/refs\/tags\///" -e "s/\^\{\}//"`
+    LATEST_TAG=`git ls-remote --tags -q  ${THEME_REPOSITORY} | tail -1 | awk '{print $2}' | sed -e "s/refs\/tags\///" -e "s/\^{}//"`
     git clone ${THEME_REPOSITORY} ${THEME_DIR} -b ${LATEST_TAG} --depth 1
   elif [ ${THEME_TAG} = "HEAD" ]; then
     # HEADを取得
@@ -111,10 +111,12 @@ else
 fi
 
 # Copy Src Dir to Jekyll Dir
-\cp -r ${SITE_DIR}/* ${JEKYLL_DIR}/
-rm -rf ${JEKYLL_DIR}/.git/
+\cp -r ${SITE_DIR}/. ${JEKYLL_DIR}/
 
 cd $JEKYLL_DIR
+
+# bundler settings
+bundle config set --local path $BUNDLE_DIR
 
 # Gemfileにwebrickがない場合追加
 echo "GemfileにWebrickが記述されていない場合、追加します。"
