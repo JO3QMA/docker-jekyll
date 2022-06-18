@@ -88,7 +88,6 @@ fi
 cd ${JEKYLL_DIR}
 cp -r ${THEME_DIR}/* ${JEKYLL_DIR}
 rm -rf ${JEKYLL_DIR}/_posts/
-rm -rf ${JEKYLL_DIR}/.git/
 
 
 # Site Repository Clone
@@ -135,7 +134,7 @@ fi
 
 # bundle
 echo "Bundle installをします"
-/usr/local/bundle/bin/bundle install --path ${BUNDLE_DIR}
+/usr/local/bundle/bin/bundle install
 
 echo "========================================"
 
