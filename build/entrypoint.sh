@@ -1,6 +1,5 @@
 #!/bin/bash
 set -e
-set -x
 
 # 初期化
 SITE_DIR=/usr/src/app
