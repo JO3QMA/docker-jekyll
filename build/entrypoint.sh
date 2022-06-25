@@ -55,102 +55,161 @@ echo "jekyll NEW BLANK  : ${JEKYLL_NEW_BLANK}"
 echo "Bundler Dir       : ${BUNDLE_DIR}"
 echo "========================================"
 
-# Theme Repository Clone
-echo "テーマのダウンロード処理を開始します。"
-# cd ${THEME_DIR}
-if [ -n "$THEME_REPOSITORY" ]; then
-  # ${THEME_REPOSITORY}が空でない場合
-  : ${THEME_TAG:="HEAD"}
-  if [ ${THEME_TAG} = "latest" ]; then
-    # 最後のタグを取得
-    LATEST_TAG=`git ls-remote --tags -q  ${THEME_REPOSITORY} | tail -1 | awk '{print $2}' | sed -e "s/refs\/tags\///" -e "s/\^{}//"`
-    git clone ${THEME_REPOSITORY} ${THEME_DIR} -b ${LATEST_TAG} --depth 1
-  elif [ ${THEME_TAG} = "HEAD" ]; then
-    # HEADを取得
-    git clone ${THEME_REPOSITORY} ${THEME_DIR} --depth 1
-  else
-    # 指定バージョンを取得
-    git ls-remote --tags -q ${THEME_REPOSITORY} | awk '{print $2}'| sed -e "s/refs\/tags\///" | grep -x ${THEME_TAG}
-    if [ $? -eq 0 ]; then
-      git clone ${THEME_REPOSITORY} ${THEME_DIR} -b ${THEME_TAG} --depth 1
+
+while : ; do
+  # Theme Repository Clone
+  echo "テーマのダウンロード処理を開始します。"
+  # cd ${THEME_DIR}
+  if [ -n "$THEME_REPOSITORY" ]; then
+    # ${THEME_REPOSITORY}が空でない場合
+    : ${THEME_TAG:="HEAD"}
+    if [ ${THEME_TAG} = "latest" ]; then
+      # 最後のタグを取得
+      LATEST_TAG=`git ls-remote --tags -q  ${THEME_REPOSITORY} | tail -1 | awk '{print $2}' | sed -e "s/refs\/tags\///" -e "s/\^{}//"`
+      THEME_GIT_OPTIONS="-b ${LATEST_TAG}"
+    elif [ ${THEME_TAG} = "HEAD" ]; then
+      # HEADを取得
+      THEME_GIT_OPTIONS=""
     else
-      echo "THEME_TAGと一致するタグが存在しません。"
-      exit 1
-    fi
-  fi
-else
-  echo "環境変数:THEME_REPOSITORYが空です。処理を中断します。"
-  exit 1
-fi
-
-
-# Copy theme to Jekyll Dir
-cd ${JEKYLL_DIR}
-cp -r ${THEME_DIR}/* ${JEKYLL_DIR}
-rm -rf ${JEKYLL_DIR}/_posts/
-
-
-# Site Repository Clone
-if [ -n ${SITE_REPOSITORY} ]; then
-  if [ -n "${SITE_BRANCH}" ]; then
-    git ls-remote --heads ${SITE_REPOSITORY} | awk '{print $2}' | sed -e "s/refs\/heads\///" | grep -x ${SITE_BRANCH}
-    if [ $? -eq 0 ]; then
-      git clone ${SITE_REPOSITORY} ${SITE_DIR} -b ${SITE_BRANCH} --depth 1
-    else
-      echo "SITE_BRANCHが存在しません。"
-      exit 1
+      # 指定バージョンを取得
+      git ls-remote --tags -q ${THEME_REPOSITORY} | awk '{print $2}'| sed -e "s/refs\/tags\///" | grep -x ${THEME_TAG}
+      if [ $? -eq 0 ]; then
+        THEME_GIT_OPTIONS="-b ${THEME_TAG}"
+      else
+        echo "THEME_TAGと一致するタグが存在しません。"
+        exit 1
+      fi
     fi
   else
-    # Branchが指定されていない場合、メインブランチを使う
-    git clone ${SITE_REPOSITORY} ${SITE_DIR} --depth 1
+    echo "環境変数:THEME_REPOSITORYが空です。処理を中断します。"
+    exit 1
   fi
-else
-  echo "SITE_REPOSITORYが指定されていません。"
-  exit 1
-fi
 
-# Copy Src Dir to Jekyll Dir
-\cp -r ${SITE_DIR}/. ${JEKYLL_DIR}/
+  git -C ${THEME_DIR} remote -v --quiet && :
+  if [ $? -eq 0 ]; then
+    # すでにGitリポジトリがある場合
+    THEME_REMOTE=`git -C ${THEME_DIR}  remote -v | grep "origin" | grep "fetch" | awk '{print $2}'`
+    echo "${THEME_REMOTE}"
+    if [ ${THEME_REMOTE} = ${THEME_REPOSITORY} ];then
+      rm -rf ${THEME_DIR}/* ${THEME_DIR}/.[!.]*
+      git clone ${THEME_REPOSITORY} ${THEME_DIR} ${THEME_GIT_OPTIONS} --depth 1
+    else
+      echo "${THEME_DIR}に${THEME_REPOSITORY}以外のリポジトリが入っています。"
+      exit 1
+    fi
+  elif [ $? -eq 1 ]; then
+    # Gitリポジトリがない場合
+    git clone ${THEME_REPOSITORY} ${THEME_DIR} ${THEME_GIT_OPTIONS} --depth 1
+  else
+    # その他
+    echo "git remote -vが${?}で終了しました。"
+    exit 1
+  fi
 
-cd $JEKYLL_DIR
+  # Copy theme to Jekyll Dir
+  \cp -r ${THEME_DIR}/* ${JEKYLL_DIR}
+  rm -rf ${JEKYLL_DIR}/_posts/ ${JEKYLL_DIR}/.git/
 
-# bundler settings
-bundle config set --local path $BUNDLE_DIR
 
-# Gemfileにwebrickがない場合追加
-echo "GemfileにWebrickが記述されていない場合、追加します。"
-cd ${JEKYLL_DIR}
-grep -q "webrick" "${JEKYLL_DIR}/Gemfile"
-if [ $? -eq 0 ]; then
-  echo "webrickはすでに入っています。"
-elif [ $? -eq 1 ]; then
-  echo $PWD
-  echo "webrickを追加しました。"
-  bundle add webrick
-else
-  echo "エラーが発生しました。 Exit Code: ${?}"
-  exit 1
-fi
+  # Site Repository Clone
+  if [ -n ${SITE_REPOSITORY} ]; then
+    if [ -n "${SITE_BRANCH}" ]; then
+      git ls-remote --heads ${SITE_REPOSITORY} | awk '{print $2}' | sed -e "s/refs\/heads\///" | grep -x ${SITE_BRANCH}
+      if [ $? -eq 0 ]; then
+        SITE_GIT_OPTIONS="-b ${SITE_BRANCH}"
+      else
+        echo "SITE_BRANCHが存在しません。"
+        exit 1
+      fi
+    else
+      # Branchが指定されていない場合、メインブランチを使う
+      SITE_GIT_OPTIONS=""
+    fi
+  else
+    echo "SITE_REPOSITORYが指定されていません。"
+    exit 1
+  fi
 
-# bundle
-echo "Bundle installをします"
-/usr/local/bundle/bin/bundle install
+  git -C ${SITE_DIR} remote -v --quiet && :
+  if [ $? -eq 0 ]; then
+    # すでにGitリポジトリがある場合
+    SITE_REMOTE=`git -C ${SITE_DIR}  remote -v | grep "origin" | grep "fetch" | awk '{print $2}'`
+    echo "${SITE_REMOTE}"
+    if [ ${SITE_REMOTE} = ${SITE_REPOSITORY} ];then
+      rm -rf ${SITE_DIR}/* ${SITE_DIR}/.[!.]*
+      git clone ${SITE_REPOSITORY} ${SITE_DIR} ${SITE_GIT_OPTIONS} --depth 1
+    else
+      echo "${SITE_DIR}に${SITE_REPOSITORY}以外のリポジトリが入っています。"
+      exit 1
+    fi
+  elif [ $? -eq 1 ]; then
+    # Gitリポジトリがない場合
+    git clone ${SITE_REPOSITORY} ${SITE_DIR} ${SITE_GIT_OPTIONS} --depth 1
+  else
+    # その他
+    echo "git remote -vが${?}で終了しました。"
+    exit 1
+  fi
 
-echo "========================================"
+  # Copy Src Dir to Jekyll Dir
+  \cp -r ${SITE_DIR}/. ${JEKYLL_DIR}/
 
-# Jekyll 起動
-if   [ ${JEKYLL_MODE} = "serve"     ]; then
-  /usr/local/bundle/bin/bundle exec jekyll serve     ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR} --host=0.0.0.0
-elif [ ${JEKYLL_MODE} = "build"     ]; then
-  /usr/local/bundle/bin/bundle exec jekyll build     ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR}
-elif [ ${JEKYLL_MODE} = "doctor"    ]; then
-  /usr/local/bundle/bin/bundle exec jekyll doctor    ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR}
-elif [ ${JEKYLL_MODE} = "clean"     ]; then
-  /usr/local/bundle/bin/bundle exec jekyll clean     ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR}
-elif [ ${JEKYLL_MODE} = "new-theme" ]; then
-  /usr/local/bundle/bin/bundle exec jekyll new-theme ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR}
-else
-  # それ以外はエラーを返す
-  echo "モードが不適切です。使用可能なモードは(serve|build|doctor|clean|new-theme)です。"
-  exit 1
-fi
+  cd $JEKYLL_DIR
+
+  # bundler settings
+  bundle config set --local path $BUNDLE_DIR
+
+  # Gemfileにwebrickがない場合追加
+  echo "GemfileにWebrickが記述されていない場合、追加します。"
+  cd ${JEKYLL_DIR}
+  grep -q "webrick" "${JEKYLL_DIR}/Gemfile"
+  if [ $? -eq 0 ]; then
+    echo "webrickはすでに入っています。"
+  elif [ $? -eq 1 ]; then
+    echo $PWD
+    echo "webrickを追加しました。"
+    bundle add webrick
+  else
+    echo "エラーが発生しました。 Exit Code: ${?}"
+    exit 1
+  fi
+
+  # bundle
+  echo "Bundle installをします"
+  /usr/local/bundle/bin/bundle install
+
+  echo "========================================"
+
+  # Jekyll 起動
+  if   [ ${JEKYLL_MODE} = "serve"     ]; then
+    /usr/local/bundle/bin/bundle exec jekyll serve     ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR} --host=0.0.0.0
+  elif [ ${JEKYLL_MODE} = "build"     ]; then
+    /usr/local/bundle/bin/bundle exec jekyll build     ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR}
+  elif [ ${JEKYLL_MODE} = "doctor"    ]; then
+    /usr/local/bundle/bin/bundle exec jekyll doctor    ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR}
+  elif [ ${JEKYLL_MODE} = "clean"     ]; then
+    /usr/local/bundle/bin/bundle exec jekyll clean     ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR}
+  elif [ ${JEKYLL_MODE} = "new-theme" ]; then
+    /usr/local/bundle/bin/bundle exec jekyll new-theme ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR}
+  else
+    # それ以外はエラーを返す
+    echo "モードが不適切です。使用可能なモードは(serve|build|doctor|clean|new-theme)です。"
+    exit 1
+  fi
+
+  # update check
+  IS_REPO_UPDATE= false
+  while [ ${IS_REPO_UPDATE} = false ]; do
+
+    # SITE_REPOSITORYの更新を確認
+
+    SITE_REMOTE_COMMIT_ID=$(git ls-remote ${SITE_REPOSITORY} | grep "`git branch --nontains | awk '{print$2}'`" | awk '{print$1}')
+    SITE_LOCAL_COMMIT_ID=$(git -C ${SITE_DIR} show | grep "commit" | awk '{print$2}')
+    if [ $SITE_REMOTE_COMMIT_ID = $SITE_LOCAL_COMMIT_ID ]; then
+      sleep 60
+      IS_REPO_UPDATE=false
+    else
+      IS_REPO_UPDATE=true
+    fi
+  done
+done
