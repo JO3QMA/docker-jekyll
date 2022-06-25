@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -x
 
 # 初期化
 SITE_DIR=/usr/src/app
@@ -58,23 +59,27 @@ echo "========================================"
 
 while : ; do
   # Theme Repository Clone
-  echo "テーマのダウンロード処理を開始します。"
+  echo "テーマの処理を開始します。"
   # cd ${THEME_DIR}
   if [ -n "$THEME_REPOSITORY" ]; then
     # ${THEME_REPOSITORY}が空でない場合
     : ${THEME_TAG:="HEAD"}
     if [ ${THEME_TAG} = "latest" ]; then
       # 最後のタグを取得
+      echo "一番最後のタグを取得します。"
       LATEST_TAG=`git ls-remote --tags -q  ${THEME_REPOSITORY} | tail -1 | awk '{print $2}' | sed -e "s/refs\/tags\///" -e "s/\^{}//"`
       THEME_GIT_OPTIONS="-b ${LATEST_TAG}"
+      echo "Tag: ${LATEST_TAG}"
     elif [ ${THEME_TAG} = "HEAD" ]; then
       # HEADを取得
+      echo "HEADを取得します。"
       THEME_GIT_OPTIONS=""
     else
       # 指定バージョンを取得
       git ls-remote --tags -q ${THEME_REPOSITORY} | awk '{print $2}'| sed -e "s/refs\/tags\///" | grep -x ${THEME_TAG}
       if [ $? -eq 0 ]; then
         THEME_GIT_OPTIONS="-b ${THEME_TAG}"
+        echo "Tag: ${THEME_TAG} を取得します。"
       else
         echo "THEME_TAGと一致するタグが存在しません。"
         exit 1
@@ -85,7 +90,8 @@ while : ; do
     exit 1
   fi
 
-  git -C ${THEME_DIR} remote -v --quiet && :
+  echo "テーマリポジトリのダウンロード処理を開始します。"
+  git -C ${THEME_DIR} remote -v > /dev/null && :
   if [ $? -eq 0 ]; then
     # すでにGitリポジトリがある場合
     THEME_REMOTE=`git -C ${THEME_DIR}  remote -v | grep "origin" | grep "fetch" | awk '{print $2}'`
@@ -130,7 +136,7 @@ while : ; do
     exit 1
   fi
 
-  git -C ${SITE_DIR} remote -v --quiet && :
+  git -C ${SITE_DIR} remote -v > /dev/null && :
   if [ $? -eq 0 ]; then
     # すでにGitリポジトリがある場合
     SITE_REMOTE=`git -C ${SITE_DIR}  remote -v | grep "origin" | grep "fetch" | awk '{print $2}'`
@@ -198,18 +204,27 @@ while : ; do
   fi
 
   # update check
-  IS_REPO_UPDATE= false
+  echo "========================================"
+  IS_REPO_UPDATE=false
+  echo "リポジトリ更新チェックを行います。"
   while [ ${IS_REPO_UPDATE} = false ]; do
 
     # SITE_REPOSITORYの更新を確認
 
-    SITE_REMOTE_COMMIT_ID=$(git ls-remote ${SITE_REPOSITORY} | grep "`git branch --nontains | awk '{print$2}'`" | awk '{print$1}')
+    SITE_REMOTE_COMMIT_ID=$(git ls-remote ${SITE_REPOSITORY} | grep "`git branch --contains | awk '{print$2}'`" | awk '{print$1}')
     SITE_LOCAL_COMMIT_ID=$(git -C ${SITE_DIR} show | grep "commit" | awk '{print$2}')
+    echo "Remote: ${SITE_REMOTE_COMMIT_ID}"
+    echo "Local : ${SITE_LOCAL_COMMIT_ID}"
     if [ $SITE_REMOTE_COMMIT_ID = $SITE_LOCAL_COMMIT_ID ]; then
+      echo "等しいため、60s待機します。"
       sleep 60
       IS_REPO_UPDATE=false
     else
+      echo "等しくないため、breakします。"
       IS_REPO_UPDATE=true
     fi
   done
+  echo "breakしました。"
 done
+
+echo "########ここには来ないはず"
