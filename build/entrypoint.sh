@@ -1,13 +1,15 @@
 #!/bin/bash
-set -e
+set -e # Error Stopper
+set -x # debug
 
-# 初期化
+# Initialize
 SITE_DIR=/usr/src/app
 THEME_DIR=/usr/src/theme
 JEKYLL_DIR=/usr/src/jekyll
 DEST_DIR=/usr/local/app
 BUNDLE_DIR=/usr/local/bundle
 
+# ユーザーがJekyllではない場合 (Rootだと都合が悪い) # のか？
 if [ ! -e /home/jekyll/check_user ]; then
   # UID,GIDを取得
   USER_ID=$(id -u)
@@ -55,7 +57,7 @@ echo "jekyll NEW BLANK  : ${JEKYLL_NEW_BLANK}"
 echo "Bundler Dir       : ${BUNDLE_DIR}"
 echo "========================================"
 
-
+# Main Loop
 while : ; do
   # Theme Repository Clone
   echo "テーマの処理を開始します。"
@@ -204,26 +206,10 @@ while : ; do
 
   # update check
   echo "========================================"
-  IS_REPO_UPDATE=false
-  echo "リポジトリ更新チェックを行います。"
-  while [ ${IS_REPO_UPDATE} = false ]; do
-
-    # SITE_REPOSITORYの更新を確認
-
-    SITE_REMOTE_COMMIT_ID=$(git ls-remote ${SITE_REPOSITORY} | grep "`git branch --contains | awk '{print$2}'`" | awk '{print$1}')
-    SITE_LOCAL_COMMIT_ID=$(git -C ${SITE_DIR} show | grep "commit" | awk '{print$2}')
-    echo "Remote: ${SITE_REMOTE_COMMIT_ID}"
-    echo "Local : ${SITE_LOCAL_COMMIT_ID}"
-    if [ $SITE_REMOTE_COMMIT_ID = $SITE_LOCAL_COMMIT_ID ]; then
-      echo "等しいため、60s待機します。"
-      sleep 60
-      IS_REPO_UPDATE=false
-    else
-      echo "等しくないため、breakします。"
-      IS_REPO_UPDATE=true
-    fi
-  done
-  echo "breakしました。"
+  echo "Check Repository Update..."
+  while [ $(git ls-remote ${SITE_REPOSITORY} | grep "`git branch --contains | awk '{print$2}'`" | awk '{print$1}') = $(git -C ${SITE_DIR} show | grep "commit" | awk '{print$2}') ] ; do sleep 60 ; done
+  echo "Update Found!"
+  echo "Start Updating..."
 done
 
 echo "########ここには来ないはず"
