@@ -207,7 +207,8 @@ while : ; do
   # update check
   echo "========================================"
   echo "Check Repository Update..."
-  while [ $(git ls-remote ${SITE_REPOSITORY} | grep "`git branch --contains | awk '{print$2}'`" | awk '{print$1}') = $(git -C ${SITE_DIR} show | grep "commit" | awk '{print$2}') ] ; do sleep 60 ; done
+  while [ $(git ls-remote ${THEME_REPOSITORY} | grep "`[ ${THEME_TAG} = "latest" ] && $(git ls-remote --tags -q  ${THEME_REPOSITORY} | tail -1 | awk '{print $2}' | sed -e "s/refs\/tags\///" -e "s/\^{}//")git -C ${THEME_DIR} describe --tags 2>/dev/null || echo "HEAD" `" | awk '{print$1}') = $(git -C ${THEME_DIR} rev-parse HEAD) ] && \
+        [ $(git ls-remote ${SITE_REPOSITORY}  | grep "`git -C ${SITE_DIR}  branch --contains | awk '{print$2}'`" | awk '{print$1}') = $(git -C ${SITE_DIR} rev-parse HEAD) ]; do sleep 60 ; done
   echo "Update Found!"
   echo "Start Updating..."
 done
