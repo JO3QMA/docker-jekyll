@@ -8,6 +8,7 @@ THEME_DIR=/usr/src/theme
 JEKYLL_DIR=/usr/src/jekyll
 DEST_DIR=/usr/local/app
 BUNDLE_DIR=/usr/local/bundle
+: ${THEME_TAG:="build"}
 
 # ユーザーがJekyllではない場合 (Rootだと都合が悪い) # のか？
 if [ ! -e /home/jekyll/check_user ]; then
@@ -182,29 +183,15 @@ while : ; do
   fi
 
   # bundle
-  echo "Bundle installをします"
+  echo "Starting Bundle Install..."
   /usr/local/bundle/bin/bundle install
+  echo "Done!"
 
+  # Run Jekyll
   echo "========================================"
+  /usr/local/bundle/bin/bundle exec jekyll ${JEKYLL_MODE} ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR} `[ ${JEKYLL_MODE} = "serve" ] && echo "--host=0.0.0.0"`
 
-  # Jekyll 起動
-  if   [ ${JEKYLL_MODE} = "serve"     ]; then
-    /usr/local/bundle/bin/bundle exec jekyll serve     ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR} --host=0.0.0.0
-  elif [ ${JEKYLL_MODE} = "build"     ]; then
-    /usr/local/bundle/bin/bundle exec jekyll build     ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR}
-  elif [ ${JEKYLL_MODE} = "doctor"    ]; then
-    /usr/local/bundle/bin/bundle exec jekyll doctor    ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR}
-  elif [ ${JEKYLL_MODE} = "clean"     ]; then
-    /usr/local/bundle/bin/bundle exec jekyll clean     ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR}
-  elif [ ${JEKYLL_MODE} = "new-theme" ]; then
-    /usr/local/bundle/bin/bundle exec jekyll new-theme ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR}
-  else
-    # それ以外はエラーを返す
-    echo "モードが不適切です。使用可能なモードは(serve|build|doctor|clean|new-theme)です。"
-    exit 1
-  fi
-
-  # update check
+  # Update check
   echo "========================================"
   echo "Check Repository Update..."
   while [ $( [ ${THEME_TAG} = "latest" ] && git ls-remote --tags -q ${THEME_REPOSITORY} | tail -1 | awk '{print $1}' || git ls-remote ${THEME_REPOSITORY} | grep "`[ ${THEME_TAG} = "HEAD" ] && echo "HEAD" || echo "refs/tags/${THEME_TAG}"`" | awk '{print $1}') = $(git -C ${THEME_DIR} rev-parse HEAD) ] && \
