@@ -10,6 +10,9 @@ DEST_DIR=/usr/local/app
 BUNDLE_DIR=/usr/local/bundle
 : ${THEME_TAG:="build"}
 
+# Set Bundle Install Path
+bundle config set --local path $BUNDLE_DIR
+
 # ユーザーがJekyllではない場合 (Rootだと都合が悪い) # のか？
 if [ ! -e /home/jekyll/check_user ]; then
   # UID,GIDを取得
@@ -164,37 +167,23 @@ while : ; do
 
   cd $JEKYLL_DIR
 
-  # bundler settings
-  bundle config set --local path $BUNDLE_DIR
 
-  # Gemfileにwebrickがない場合追加
-  echo "GemfileにWebrickが記述されていない場合、追加します。"
-  cd ${JEKYLL_DIR}
-  grep -q "webrick" "${JEKYLL_DIR}/Gemfile"
-  if [ $? -eq 0 ]; then
-    echo "webrickはすでに入っています。"
-  elif [ $? -eq 1 ]; then
-    echo $PWD
-    echo "webrickを追加しました。"
-    bundle add webrick
-  else
-    echo "エラーが発生しました。 Exit Code: ${?}"
-    exit 1
-  fi
+  # If Jekyll's mode is "serve", install webrick.
+  [ ${JEKYLL_MODE} = "serve" ] && grep -q "webrick" ./Gemfile || bundle add webrick
 
-  # bundle
+  # Bundle Install
   echo "Starting Bundle Install..."
-  /usr/local/bundle/bin/bundle install
+  bundle install
   echo "Done!"
 
   # Run Jekyll
   echo "========================================"
-  /usr/local/bundle/bin/bundle exec jekyll ${JEKYLL_MODE} ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR} `[ ${JEKYLL_MODE} = "serve" ] && echo "--host=0.0.0.0"`
+  bundle exec jekyll ${JEKYLL_MODE} ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR} `[ ${JEKYLL_MODE} = "serve" ] && echo "--host=0.0.0.0"`
 
   # Update check
   echo "========================================"
   echo "Check Repository Update..."
-  while [ $( [ ${THEME_TAG} = "latest" ] && git ls-remote --tags -q ${THEME_REPOSITORY} | tail -1 | awk '{print $1}' || git ls-remote ${THEME_REPOSITORY} | grep "`[ ${THEME_TAG} = "HEAD" ] && echo "HEAD" || echo "refs/tags/${THEME_TAG}"`" | awk '{print $1}') = $(git -C ${THEME_DIR} rev-parse HEAD) ] && \
+  while [ $([ ${THEME_TAG} = "latest" ] && git ls-remote --tags -q ${THEME_REPOSITORY} | tail -1 | awk '{print $1}' || git ls-remote ${THEME_REPOSITORY} | grep "`[ ${THEME_TAG} = "HEAD" ] && echo "HEAD" || echo "refs/tags/${THEME_TAG}"`" | awk '{print $1}') = $(git -C ${THEME_DIR} rev-parse HEAD) ] && \
         [ $(git ls-remote ${SITE_REPOSITORY}  | grep "`git -C ${SITE_DIR}  branch --contains | awk '{print$2}'`" | awk '{print$1}') = $(git -C ${SITE_DIR} rev-parse HEAD) ]; do sleep 60 ; done
   echo "Update Found!"
   echo "Start Updating..."
