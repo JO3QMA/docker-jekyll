@@ -10,14 +10,15 @@ DEST_DIR=/usr/local/app
 BUNDLE_DIR=/usr/local/bundle
 : ${JEKYLL_MODE:="build"}
 : ${THEME_TAG:="HEAD"}
+
 # Set Bundle Install Path
 bundle config set --local path $BUNDLE_DIR
 
 # Check environment variables
 echo "========================================"
 echo "Starting Environment variables Check..."
-[ -z "${SITE_REPOSITORY}"]  && echo "Undefined variable: SITE_REPOSITORY"  && exit 1
-[ -z "${THEME_REPOSITORY}"] && echo "Undefined variable: THEME_REPOSITORY" && exit 1
+[ -z "${SITE_REPOSITORY}" ]  && echo "Undefined variable: SITE_REPOSITORY"  && exit 1
+[ -z "${THEME_REPOSITORY}" ] && echo "Undefined variable: THEME_REPOSITORY" && exit 1
 echo "Variables Check: Passed."
 
 # ユーザーがJekyllではない場合 (Rootだと都合が悪い) # のか？
@@ -70,37 +71,27 @@ echo "========================================"
 
 # Main Loop
 while : ; do
-  # Theme Repository Clone
-  echo "テーマの処理を開始します。"
-  # cd ${THEME_DIR}
-  if [ -n "$THEME_REPOSITORY" ]; then
-    # ${THEME_REPOSITORY}が空でない場合
-    : ${THEME_TAG:="HEAD"}
-    if [ ${THEME_TAG} = "latest" ]; then
-      # 最後のタグを取得
-      echo "一番最後のタグを取得します。"
+
+  # Check Theme Repo's Info
+  echo "Check Theme Reposiroty..."
+  case ${THEME_TAG} in
+    "HEAD")
+      THEME_GIT_OPTIONS=""
+      echo "Using latest commit of Theme Reposiotry."
+    "latest")
       LATEST_TAG=`git ls-remote --tags -q  ${THEME_REPOSITORY} | tail -1 | awk '{print $2}' | sed -e "s/refs\/tags\///" -e "s/\^{}//"`
       THEME_GIT_OPTIONS="-b ${LATEST_TAG}"
-      echo "Tag: ${LATEST_TAG}"
-    elif [ ${THEME_TAG} = "HEAD" ]; then
-      # HEADを取得
-      echo "HEADを取得します。"
-      THEME_GIT_OPTIONS=""
-    else
-      # 指定バージョンを取得
+      echo "Using ${LATEST_TAG}."
+    *)
       git ls-remote --tags -q ${THEME_REPOSITORY} | awk '{print $2}'| sed -e "s/refs\/tags\///" | grep -x ${THEME_TAG}
       if [ $? -eq 0 ]; then
         THEME_GIT_OPTIONS="-b ${THEME_TAG}"
-        echo "Tag: ${THEME_TAG} を取得します。"
+        echo "Using ${THEME_TAG}."
       else
-        echo "THEME_TAGと一致するタグが存在しません。"
+        echo "There is no matching tag for ${THEME_TAG}."
         exit 1
       fi
-    fi
-  else
-    echo "環境変数:THEME_REPOSITORYが空です。処理を中断します。"
-    exit 1
-  fi
+  esac
 
   echo "テーマリポジトリのダウンロード処理を開始します。"
   git -C ${THEME_DIR} remote -v > /dev/null && :
