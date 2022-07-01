@@ -77,11 +77,11 @@ while : ; do
   case ${THEME_TAG} in
     "HEAD")
       THEME_GIT_OPTIONS=""
-      echo "Using latest commit of Theme Reposiotry."
+      echo "Using latest commit of Theme Reposiotry.";;
     "latest")
       LATEST_TAG=`git ls-remote --tags -q  ${THEME_REPOSITORY} | tail -1 | awk '{print $2}' | sed -e "s/refs\/tags\///" -e "s/\^{}//"`
       THEME_GIT_OPTIONS="-b ${LATEST_TAG}"
-      echo "Using ${LATEST_TAG}."
+      echo "Using ${LATEST_TAG}.";;
     *)
       git ls-remote --tags -q ${THEME_REPOSITORY} | awk '{print $2}'| sed -e "s/refs\/tags\///" | grep -x ${THEME_TAG}
       if [ $? -eq 0 ]; then
