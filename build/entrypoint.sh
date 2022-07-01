@@ -17,8 +17,8 @@ bundle config set --local path $BUNDLE_DIR
 # Check environment variables
 echo "========================================"
 echo "Starting Environment variables Check..."
-[ -z "${SITE_REPOSITORY}" ]  && echo "Undefined variable: SITE_REPOSITORY"  && exit 1
-[ -z "${THEME_REPOSITORY}" ] && echo "Undefined variable: THEME_REPOSITORY" && exit 1
+[ -z "${SITE_REPOSITORY}" ]  && echo >&2 "Undefined variable: SITE_REPOSITORY"  && exit 1
+[ -z "${THEME_REPOSITORY}" ] && echo >&2 "Undefined variable: THEME_REPOSITORY" && exit 1
 echo "Variables Check: Passed."
 
 # ユーザーがJekyllではない場合 (Rootだと都合が悪い) # のか？
@@ -88,31 +88,19 @@ while : ; do
         THEME_GIT_OPTIONS="-b ${THEME_TAG}"
         echo "Using ${THEME_TAG}."
       else
-        echo "There is no matching tag for ${THEME_TAG}."
+        echo >&2 "There is no matching tag for ${THEME_TAG}."
         exit 1
       fi
   esac
 
-  echo "テーマリポジトリのダウンロード処理を開始します。"
-  git -C ${THEME_DIR} remote -v > /dev/null && :
-  if [ $? -eq 0 ]; then
-    # すでにGitリポジトリがある場合
-    THEME_REMOTE=`git -C ${THEME_DIR}  remote -v | grep "origin" | grep "fetch" | awk '{print $2}'`
-    echo "${THEME_REMOTE}"
-    if [ ${THEME_REMOTE} = ${THEME_REPOSITORY} ];then
-      rm -rf ${THEME_DIR}/* ${THEME_DIR}/.[!.]*
-      git clone ${THEME_REPOSITORY} ${THEME_DIR} ${THEME_GIT_OPTIONS} --depth 1
-    else
-      echo "${THEME_DIR}に${THEME_REPOSITORY}以外のリポジトリが入っています。"
-      exit 1
-    fi
-  elif [ $? -eq 1 ]; then
-    # Gitリポジトリがない場合
-    git clone ${THEME_REPOSITORY} ${THEME_DIR} ${THEME_GIT_OPTIONS} --depth 1
+  # Clone Theme Repository
+  echo "Starting Theme Downloads..."
+  if [ "$(git -C ${THEME_DIR} rev-parse HEAD)" = $(git ls-remote ${THEME_REPOSITORY} ${THEME_GIT_OPTIONS} | tail -1 | awk '{print $1}') ]; then
+    echo "Local has the same commit ID as remote."
   else
-    # その他
-    echo "git remote -vが${?}で終了しました。"
-    exit 1
+    echo "Local has a different commit ID than remote."
+    rm -rf ${THEME_DIR}/* ${THEME_DIR}/.[!.]*
+    git clone ${THEME_REPOSITORY} ${THEME_DIR} ${THEME_GIT_OPTIONS} --depth 1
   fi
 
   # Copy theme to Jekyll Dir
@@ -169,7 +157,7 @@ while : ; do
   echo "========================================"
 
   # If Jekyll's mode is "serve", install webrick.
-  [ ${JEKYLL_MODE} = "serve" ] && grep -q "webrick" ./Gemfile || bundle add webrick && \
+  [ ${JEKYLL_MODE} = "serve" ] && $(grep -q "webrick" ./Gemfile || bundle add webrick) && \
   echo "Added webrick to Gemfile."
 
   # Bundle Install
