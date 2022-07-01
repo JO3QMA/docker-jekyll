@@ -8,10 +8,17 @@ THEME_DIR=/usr/src/theme
 JEKYLL_DIR=/usr/src/jekyll
 DEST_DIR=/usr/local/app
 BUNDLE_DIR=/usr/local/bundle
-: ${THEME_TAG:="build"}
-
+: ${JEKYLL_MODE:="build"}
+: ${THEME_TAG:="HEAD"}
 # Set Bundle Install Path
 bundle config set --local path $BUNDLE_DIR
+
+# Check environment variables
+echo "========================================"
+echo "Starting Environment variables Check..."
+[ -z "${SITE_REPOSITORY}"]  && echo "Undefined variable: SITE_REPOSITORY"  && exit 1
+[ -z "${THEME_REPOSITORY}"] && echo "Undefined variable: THEME_REPOSITORY" && exit 1
+echo "Variables Check: Passed."
 
 # ユーザーがJekyllではない場合 (Rootだと都合が悪い) # のか？
 if [ ! -e /home/jekyll/check_user ]; then
@@ -122,7 +129,7 @@ while : ; do
   rm -rf ${JEKYLL_DIR}/_posts/ ${JEKYLL_DIR}/.git/
 
 
-  # Site Repository Clone
+  # Clone Site Repository  
   if [ -n ${SITE_REPOSITORY} ]; then
     if [ -n "${SITE_BRANCH}" ]; then
       git ls-remote --heads ${SITE_REPOSITORY} | awk '{print $2}' | sed -e "s/refs\/heads\///" | grep -x ${SITE_BRANCH}
@@ -167,9 +174,12 @@ while : ; do
 
   cd $JEKYLL_DIR
 
+  # Bundle
+  echo "========================================"
 
   # If Jekyll's mode is "serve", install webrick.
-  [ ${JEKYLL_MODE} = "serve" ] && grep -q "webrick" ./Gemfile || bundle add webrick
+  [ ${JEKYLL_MODE} = "serve" ] && grep -q "webrick" ./Gemfile || bundle add webrick && \
+  echo "Added webrick to Gemfile."
 
   # Bundle Install
   echo "Starting Bundle Install..."
@@ -188,5 +198,3 @@ while : ; do
   echo "Update Found!"
   echo "Start Updating..."
 done
-
-echo "########ここには来ないはず"
