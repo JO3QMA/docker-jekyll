@@ -9,15 +9,7 @@ RUN echo "リポジトリをrikenに変更します。" \
 &&  apt install -y \
       build-essential \
       git \
-      sudo \
 &&  echo "update完了しました。"
-
-# 実行ユーザーを作成
-ENV USER_NAME=jekyll
-RUN echo "実行ユーザーを作成します。" \
-&&  echo "${USER_NAME} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers.d/${USER_NAME} \
-&&  chmod u+s /usr/sbin/useradd \
-&&  chmod u+s /usr/sbin/groupadd
 
 # Jekyllに必要なGemをインストール
 RUN  gem update \
@@ -26,11 +18,7 @@ RUN  gem update \
 # entrypoint.shと作業に必要なディレクトリを作成
 ADD entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh \
-&&  mkdir /usr/src/app -p \
-&&  mkdir /usr/src/theme -p \
-&&  mkdir /usr/src/jekyll -p \
-&&  mkdir /usr/local/app -p \
-&&  mkdir /usr/local/bundle -p
+&&  mkdir /usr/src/{app,theme,jekyll} /usr/local/{app,bundle} -p
 
 WORKDIR /usr/src/jekyll
 

@@ -21,38 +21,6 @@ echo "Starting Environment variables Check..."
 [ -z "${THEME_REPOSITORY}" ] && echo >&2 "Undefined variable: THEME_REPOSITORY" && exit 1
 echo "Variables Check: Passed."
 
-# ユーザーがJekyllではない場合 (Rootだと都合が悪い) # のか？
-if [ ! -e /home/jekyll/check_user ]; then
-  # UID,GIDを取得
-  USER_ID=$(id -u)
-  GROUP_ID=$(id -g)
-
-  # グループを作成する
-  if [ x"$GROUP_ID" != x"0" ]; then
-      groupadd -g $GROUP_ID $USER_NAME
-  fi
-
-  # ユーザを作成する
-  if [ x"$USER_ID" != x"0" ]; then
-      useradd -d /home/$USER_NAME -m -s /bin/bash -u $USER_ID -g $GROUP_ID $USER_NAME
-  fi
-
-  # パーミッションを元に戻す
-  sudo chmod u-s /usr/sbin/useradd
-  sudo chmod u-s /usr/sbin/groupadd
-
-  # パーミッション変更
-  sudo chown $USER_NAME:$USER_NAME $SITE_DIR
-  sudo chown $USER_NAME:$USER_NAME $THEME_DIR
-  sudo chown $USER_NAME:$USER_NAME $JEKYLL_DIR
-  sudo chown $USER_NAME:$USER_NAME $DEST_DIR
-  sudo chown $USER_NAME:$USER_NAME $BUNDLE_DIR
-
-  touch /home/jekyll/check_user
-fi
-
-exec $@
-
 # 設定値表示
 echo "========================================"
 echo "Site Files Dir    : ${SITE_DIR}"
