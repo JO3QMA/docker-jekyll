@@ -5,12 +5,14 @@ services:
     env_file:
      - jekyll.env
     volumes:
-      - ./app:/usr/src/app
       - ./output:/usr/local/app
-    user: "1000:1000"
+      - bundle_volume:/usr/local/bundle
   nginx:
     image: nginx:latest
     volumes:
       - ./output:/usr/share/nginx/html
     environment:
       TZ: Asia/Tokyo
+
+volumes:
+  bundle_volume:

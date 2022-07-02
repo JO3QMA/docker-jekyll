@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e # Error Stopper
-set -x # debug
+#set -x # debug
 
 # Initialize
 SITE_DIR=/usr/src/app
