@@ -97,34 +97,32 @@ while : ; do
   echo "Starting Theme Downloads..."
   if [ "$(git -C ${THEME_DIR} rev-parse HEAD)" = $(git ls-remote ${THEME_REPOSITORY} ${THEME_GIT_OPTIONS} | tail -1 | awk '{print $1}') ]; then
     echo "Local has the same commit ID as remote."
+    echo "Skipped the theme download."
   else
     echo "Local has a different commit ID than remote."
     rm -rf ${THEME_DIR}/* ${THEME_DIR}/.[!.]*
     git clone ${THEME_REPOSITORY} ${THEME_DIR} ${THEME_GIT_OPTIONS} --depth 1
+    echo "Done."
   fi
 
   # Copy theme to Jekyll Dir
   \cp -r ${THEME_DIR}/* ${JEKYLL_DIR}
   rm -rf ${JEKYLL_DIR}/_posts/ ${JEKYLL_DIR}/.git/
 
-
-  # Clone Site Repository  
-  if [ -n ${SITE_REPOSITORY} ]; then
-    if [ -n "${SITE_BRANCH}" ]; then
-      git ls-remote --heads ${SITE_REPOSITORY} | awk '{print $2}' | sed -e "s/refs\/heads\///" | grep -x ${SITE_BRANCH}
-      if [ $? -eq 0 ]; then
-        SITE_GIT_OPTIONS="-b ${SITE_BRANCH}"
-      else
-        echo "SITE_BRANCHが存在しません。"
-        exit 1
-      fi
+  # Check Site Repo's Info
+  echo "Check Site Repository..."
+  if [ -n "${SITE_BRANCH}" ]; then
+    git ls-remote --heads -q ${SITE_REPOSITORY} ${SITE_BRANCH} | awk '{print $2}' | sed -e 's/refs\/heads\///' | grep -x ${SITE_BRANCH}
+    if [ $? -eq 0 ]; then
+      SITE_GIT_OPTIONS="-b ${SITE_BRANCH}"
+      echo "Using ${SITE_BRANCH}"
     else
-      # Branchが指定されていない場合、メインブランチを使う
-      SITE_GIT_OPTIONS=""
+      echo >&2 "There is no matching branch for ${SITE_BRANCH}."
+      exit 1
     fi
   else
-    echo "SITE_REPOSITORYが指定されていません。"
-    exit 1
+    echo "The environment variable SITE_BRANCH is undefined. Use the main branch."
+    SITE_GIT_OPTIONS=""
   fi
 
   git -C ${SITE_DIR} remote -v > /dev/null && :
