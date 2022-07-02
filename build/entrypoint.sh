@@ -125,25 +125,16 @@ while : ; do
     SITE_GIT_OPTIONS=""
   fi
 
-  git -C ${SITE_DIR} remote -v > /dev/null && :
-  if [ $? -eq 0 ]; then
-    # すでにGitリポジトリがある場合
-    SITE_REMOTE=`git -C ${SITE_DIR}  remote -v | grep "origin" | grep "fetch" | awk '{print $2}'`
-    echo "${SITE_REMOTE}"
-    if [ ${SITE_REMOTE} = ${SITE_REPOSITORY} ];then
-      rm -rf ${SITE_DIR}/* ${SITE_DIR}/.[!.]*
-      git clone ${SITE_REPOSITORY} ${SITE_DIR} ${SITE_GIT_OPTIONS} --depth 1
-    else
-      echo "${SITE_DIR}に${SITE_REPOSITORY}以外のリポジトリが入っています。"
-      exit 1
-    fi
-  elif [ $? -eq 1 ]; then
-    # Gitリポジトリがない場合
-    git clone ${SITE_REPOSITORY} ${SITE_DIR} ${SITE_GIT_OPTIONS} --depth 1
+  # Clone Site Repository
+  echo "Starting Site Downloads..."
+  if [ "$(git -C ${SITE_DIR} rev-parse HEAD)" = $(git ls-remote ${SITE_REPOSITORY} ${SITE_GIT_OPTIONS} | tail -1 | awk '{print $1}') ]; then
+    echo "Local has the same commit ID as remote."
+    echo "Skipped the theme download."
   else
-    # その他
-    echo "git remote -vが${?}で終了しました。"
-    exit 1
+    echo "Local has a different commit ID than remote."
+    rm -rf ${SITE_DIR}/* ${SITE_DIR}/.[!.]*
+    git clone ${SITE_REPOSITORY} ${SITE_DIR} ${SITE_GIT_OPTIONS} --depth 1
+    echo "Done."
   fi
 
   # Copy Src Dir to Jekyll Dir
