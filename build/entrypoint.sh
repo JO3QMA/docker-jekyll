@@ -3,8 +3,17 @@ set -e # Error Stopper
 #set -x # debug
 
 # function
+
+## Ruled Line
 function hr () {
   printf '%.0s=' {1..40}
+  echo ""
+}
+
+function item () {
+  local subject=$1
+  local value=$2
+  printf '%-19s' "${subject}" ": ${value}"
   echo ""
 }
 
@@ -27,20 +36,20 @@ echo "Starting Environment variables Check..."
 [ -z "${THEME_REPOSITORY}" ] && echo >&2 "Undefined variable: THEME_REPOSITORY" && exit 1
 echo "Variables Check: Passed."
 
-# 設定値表示
+# Show Settings
 hr
-echo "Site Files Dir    : ${SITE_DIR}"
-echo "Site Repo's URL   : ${SITE_REPOSITORY}"
-echo "Site Repo's Branch: ${SITE_BRANCH}"
-echo "Theme Fils Dir    : ${THEME_DIR}"
-echo "Theme Repo's URL  : ${THEME_REPOSITORY}"
-echo "Theme Repo's Tag  : ${THEME_TAG}"
-echo "Output Dir        : ${DEST_DIR}"
-echo "Jekyll Dir        : ${JEKYLL_DIR}"
-echo "Jekyll Mode       : ${JEKYLL_MODE}"
-echo "jekyll ARGS       : ${JEKYLL_ARGS}"
-echo "jekyll NEW BLANK  : ${JEKYLL_NEW_BLANK}"
-echo "Bundler Dir       : ${BUNDLE_DIR}"
+item "Site Files Dir" "${SITE_DIR}"
+item "Site Repo's URL" "${SITE_REPOSITORY}"
+item "Site Repo's Branch" "${SITE_BRANCH}"
+item "Theme Fils Dir" "${THEME_DIR}"
+item "Theme Repo's URL" "${THEME_REPOSITORY}"
+item "Theme Repo's Tag" "${THEME_TAG}"
+item "Output Dir" "${DEST_DIR}"
+item "Jekyll Dir" "${JEKYLL_DIR}"
+item "Jekyll Mode" "${JEKYLL_MODE}"
+item "jekyll ARGS" "${JEKYLL_ARGS}"
+item "jekyll NEW BLANK" "${JEKYLL_NEW_BLANK}"
+item "Bundler Dir" "${BUNDLE_DIR}"
 hr
 
 # Main Loop
@@ -53,11 +62,11 @@ while : ; do
       THEME_GIT_OPTIONS=""
       echo "Using latest commit of Theme Reposiotry.";;
     "latest")
-      LATEST_TAG=`git ls-remote --tags -q  ${THEME_REPOSITORY} | tail -1 | awk '{print $2}' | sed -e "s/refs\/tags\///" -e "s/\^{}//"`
+      LATEST_TAG=$(git ls-remote --tags -q  "${THEME_REPOSITORY}" | tail -1 | awk '{print $2}' | sed -e "s/refs\/tags\///" -e "s/\^{}//")
       THEME_GIT_OPTIONS="-b ${LATEST_TAG}"
       echo "Using ${LATEST_TAG}.";;
     *)
-      git ls-remote --tags -q ${THEME_REPOSITORY} | awk '{print $2}'| sed -e "s/refs\/tags\///" | grep -x ${THEME_TAG}
+      git ls-remote --tags -q "${THEME_REPOSITORY}" | awk '{print $2}'| sed -e "s/refs\/tags\///" | grep -x ${THEME_TAG}
       if [ $? -eq 0 ]; then
         THEME_GIT_OPTIONS="-b ${THEME_TAG}"
         echo "Using ${THEME_TAG}."
