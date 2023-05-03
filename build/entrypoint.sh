@@ -2,27 +2,33 @@
 set -e # Error Stopper
 #set -x # debug
 
+# function
+function hr () {
+  printf '%.0s=' {1..40}
+  echo ""
+}
+
 # Initialize
 SITE_DIR=/usr/src/app
 THEME_DIR=/usr/src/theme
 JEKYLL_DIR=/usr/src/jekyll
 DEST_DIR=/usr/local/app
 BUNDLE_DIR=/usr/local/bundle
-: ${JEKYLL_MODE:="build"}
-: ${THEME_TAG:="HEAD"}
+: "${JEKYLL_MODE:="build"}"
+: "${THEME_TAG:="HEAD"}"
 
 # Set Bundle Install Path
 bundle config set --local path $BUNDLE_DIR
 
 # Check environment variables
-echo "========================================"
+hr
 echo "Starting Environment variables Check..."
 [ -z "${SITE_REPOSITORY}" ]  && echo >&2 "Undefined variable: SITE_REPOSITORY"  && exit 1
 [ -z "${THEME_REPOSITORY}" ] && echo >&2 "Undefined variable: THEME_REPOSITORY" && exit 1
 echo "Variables Check: Passed."
 
 # 設定値表示
-echo "========================================"
+hr
 echo "Site Files Dir    : ${SITE_DIR}"
 echo "Site Repo's URL   : ${SITE_REPOSITORY}"
 echo "Site Repo's Branch: ${SITE_BRANCH}"
@@ -35,7 +41,7 @@ echo "Jekyll Mode       : ${JEKYLL_MODE}"
 echo "jekyll ARGS       : ${JEKYLL_ARGS}"
 echo "jekyll NEW BLANK  : ${JEKYLL_NEW_BLANK}"
 echo "Bundler Dir       : ${BUNDLE_DIR}"
-echo "========================================"
+hr
 
 # Main Loop
 while : ; do
@@ -111,7 +117,7 @@ while : ; do
   cd $JEKYLL_DIR
 
   # Bundle
-  echo "========================================"
+  hr
 
   # If Jekyll's mode is "serve", install webrick.
   [ ${JEKYLL_MODE} = "serve" ] && $(grep -q "webrick" ./Gemfile || bundle add webrick) && \
@@ -123,11 +129,11 @@ while : ; do
   echo "Done!"
 
   # Run Jekyll
-  echo "========================================"
+  hr
   bundle exec jekyll ${JEKYLL_MODE} ${JEKYLL_ARGS} -s ${JEKYLL_DIR} -d ${DEST_DIR} `[ ${JEKYLL_MODE} = "serve" ] && echo "--host=0.0.0.0"`
 
   # Update check
-  echo "========================================"
+  hr
   echo "Check Repository Update..."
   while [ $([ ${THEME_TAG} = "latest" ] && git ls-remote --tags -q ${THEME_REPOSITORY} | tail -1 | awk '{print $1}' || git ls-remote ${THEME_REPOSITORY} | grep "`[ ${THEME_TAG} = "HEAD" ] && echo "HEAD" || echo "refs/tags/${THEME_TAG}"`" | awk '{print $1}') = $(git -C ${THEME_DIR} rev-parse HEAD) ] && \
         [ $(git ls-remote ${SITE_REPOSITORY}  | grep "`git -C ${SITE_DIR}  branch --contains | awk '{print$2}'`" | awk '{print$1}') = $(git -C ${SITE_DIR} rev-parse HEAD) ]; do sleep 60 ; done
