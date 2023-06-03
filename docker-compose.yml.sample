@@ -2,11 +2,13 @@ version: "3"
 services:
   jekyll:
     build: ./build
+    restart: always
     env_file:
-     - jekyll.env
+      - jekyll.env
     volumes:
       - ./output:/usr/local/app
       - bundle_volume:/usr/local/bundle
+
   nginx:
     image: nginx:latest
     volumes:
