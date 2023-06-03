@@ -1,4 +1,4 @@
-FROM ruby:3.1.2-bullseye
+FROM ruby:3.2.2-bullseye
 
 # パッケージ関連
 RUN echo "リポジトリをrikenに変更します。" \
@@ -12,7 +12,7 @@ RUN echo "リポジトリをrikenに変更します。" \
 &&  echo "update完了しました。"
 
 # Jekyllに必要なGemをインストール
-RUN  gem update \
+RUN gem update \
 &&  gem install jekyll bundler
 
 # entrypoint.shと作業に必要なディレクトリを作成
